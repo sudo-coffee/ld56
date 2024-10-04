@@ -12,7 +12,7 @@ mkdir -p "$SCRIPT_DIR/export/web"
 mkdir -p "$SCRIPT_DIR/export/win"
 
 # Love file.
-cd "$SCRIPT_DIR/source"
+cd "$SCRIPT_DIR/main"
 zip -qr9 "$SCRIPT_DIR/export/$TITLE.love" "."
 
 # Web page.
