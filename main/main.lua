@@ -22,7 +22,7 @@ local function moveForward()
     elseif direction == class.EAST then
       position.x = position.x + 1
     end
-    characters[i]:setPosition(world, position)
+    characters[i]:setPosition(position)
   end
 end
 
@@ -39,7 +39,7 @@ local function moveBack()
     elseif direction == class.EAST then
       position.x = position.x - 1
     end
-    characters[i]:setPosition(world, position)
+    characters[i]:setPosition(position)
   end
 end
 
@@ -56,7 +56,7 @@ local function strafeRight()
     elseif direction == class.EAST then
       position.z = position.z - 1
     end
-    characters[i]:setPosition(world, position)
+    characters[i]:setPosition(position)
   end
 end
 
@@ -73,7 +73,7 @@ local function strafeLeft()
     elseif direction == class.EAST then
       position.z = position.z + 1
     end
-    characters[i]:setPosition(world, position)
+    characters[i]:setPosition(position)
   end
 end
 
@@ -116,14 +116,14 @@ end
 
 function love.load()
   world = class.world.new()
-  testBlockRed = blocks.testBlockColor(0.8, 0.2, 0.3, 0.6)
-  world:setBlock(11, 10, 10, testBlockRed)
+  local testBlockRed = blocks.testBlockColor(0.8, 0.2, 0.3, 0.6)
+  world:addBlock(testBlockRed, {x=11, y=10, z=10})
   view.setDimensions(800, 800)
   for x=1,4 do
     for y=1,4 do
       local block = blocks.character()
-      local character = class.character.new(block, x, y, 200, 200, 10)
-      character:setPosition(world, {x=x*2, y=10, z=y*2})
+      local character = class.character.new(world, block, x, y, 200, 200, 10)
+      character:setPosition({x=x*2, y=10, z=y*2})
       table.insert(characters, character)
     end
   end
