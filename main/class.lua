@@ -20,7 +20,7 @@ class.DOWN = 6
 
 local function renderBlock(camera, canvas, position, block)
   local distance
-  print(position[1], position[2], position[3], block)
+  print(position.x, position.y, position.z, block)
 end
 
 
@@ -61,48 +61,13 @@ class.camera = {}
 
 function class.camera.new()
   local instance = {}
-  instance._position = {0, 0, 0}
-  instance._direction = class.NORTH
-  instance._perspective = 0.8
-  instance._frame = 2.0
+  instance.position = {x=0, y=0, z=0}
+  instance.direction = class.NORTH
+  instance.perspective = 0.8
+  instance.frame = 2.0
+  instance.fog = 2.0
   setmetatable(instance, {__index = class.camera})
   return instance
-end
-
-function class.camera:setPosition(x, y, z)
-  self._position = {x, y, z}
-end
-
-function class.camera:getPosition()
-  return unpack(self._position)
-end
-
--- Must be NORTH, EAST, SOUTH, or WEST.
-function class.camera:setDirection(direction)
-  self._direction = direction
-end
-
-function class.camera:getDirection()
-  return self._direction
-end
-
--- Float between "0.0" and "1.0".
-function class.camera:setPerspective(perspective)
-  self._perspective = perspective
-end
-
-function class.camera:getPerspective()
-  return self._perspective
-end
-
--- Value representing the size of the closest mesh layer, with 1.0 exactly
--- matching the Window's frame.
-function class.camera:setFrame(frame)
-  self._frame = frame
-end
-
-function class.camera:getFrame()
-  return self._frame
 end
 
 
@@ -122,19 +87,24 @@ function class.block.new()
 end
 
 function class.block:addWall(wall)
-  table.insert(self._walls, wall)
+  self._walls[wall.direction] = wall
 end
 
-function class.block:getWalls()
-  return self._walls
+function class.block:getWall(direction)
+  return self._walls[wall.direction] or nil
+end
+
+function class.block:testWall(direction)
+  return self._walls[direction] ~= nil
 end
 
 function class.block:addSurface(surface)
-  table.insert(self._surfaces, surface)
+  self._surfaces[surface.side] = self._surfaces[surface.side] or {}
+  self._surfaces[surface.side][surface.direction] = surface
 end
 
-function class.block:getSurfaces()
-  return self._surfaces
+function class.block:getSurface(side, direction)
+  return self._surfaces[side] and self._surfaces[side][direction] or nil
 end
 
 -- Must be NORTH, EAST, SOUTH, or WEST.
@@ -176,11 +146,19 @@ function class.world:setBlock(x, y, z, block)
 end
 
 function class.world:getBlock(x, y, z)
-  local block = nil
-  if self._blocks[x] and self._blocks[x][y] and self._blocks[x][y][z] then
-    block = self._blocks[x][y][z]
+  return self._blocks[x] and self._blocks[x][y] and self._blocks[x][y][z] or nil
+end
+
+function class.world:getBlockPositions()
+  local blockPositions = {}
+  for x, sliceY in pairs(self._blocks) do
+    for y, sliceZ in pairs(sliceY) do
+      for z, _ in pairs(sliceZ) do
+        table.insert(blockPositions, {x=x, y=y, z=z})
+      end
+    end
   end
-  return block
+  return blockPositions
 end
 
 function class.world:clearBlock(x, y, z)
@@ -190,34 +168,24 @@ function class.world:clearBlock(x, y, z)
 end
 
 function class.world:render(camera, canvas)
-  local positionsToRender = {}
-  local direction = camera:getDirection()
-  local camX, camY, camZ = camera:getPosition()
-
-  for x, sliceY in pairs(self._blocks) do
-    for y, sliceZ in pairs(sliceY) do
-      for z, _ in pairs(sliceZ) do
-        table.insert(positionsToRender, {x, y, z})
-      end
-    end
-  end
-
-  table.sort(positionsToRender, function(a, b)
-    local aXDiff = math.max(a[1], camX) - math.min(a[1], camX)
-    local aYDiff = math.max(a[2], camY) - math.min(a[2], camY)
-    local aZDiff = math.max(a[3], camZ) - math.min(a[3], camZ)
-    local bXDiff = math.max(b[1], camX) - math.min(b[1], camX)
-    local bYDiff = math.max(b[2], camY) - math.min(b[2], camY)
-    local bZDiff = math.max(b[3], camZ) - math.min(b[3], camZ)
+  local blockPositions = self:getBlockPositions()
+  local camX = camera.position.x
+  local camY = camera.position.y
+  local camZ = camera.position.z
+  table.sort(blockPositions, function(a, b)
+    local aXDiff = math.max(a.x, camX) - math.min(a.x, camX)
+    local aYDiff = math.max(a.y, camY) - math.min(a.y, camY)
+    local aZDiff = math.max(a.z, camZ) - math.min(a.z, camZ)
+    local bXDiff = math.max(b.x, camX) - math.min(b.x, camX)
+    local bYDiff = math.max(b.y, camY) - math.min(b.y, camY)
+    local bZDiff = math.max(b.z, camZ) - math.min(b.z, camZ)
     return aXDiff + aYDiff + aZDiff > bXDiff + bYDiff + bZDiff
   end)
-
-  for i=1,#positionsToRender do
-    local position = positionsToRender[i]
-    local block = self:getBlock(unpack(position))
+  for i=1,#blockPositions do
+    local position = blockPositions[i]
+    local block = self:getBlock(position.x, position.y, position.z)
     renderBlock(camera, canvas, position, block)
   end
-
 end
 
 return class

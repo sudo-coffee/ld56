@@ -9,7 +9,7 @@ local class = require("class")
 function worldTest()
   local camera = class.camera.new()
   local world = class.world.new()
-  camera:setPosition(10, 10, 0)
+  camera.position = {x=10, y=10, z=0}
   world:setBlock(10, 10, 0, "block1")
   world:setBlock(10, 10, 1, "block1")
   world:setBlock(6, 0, 0, "block1")
