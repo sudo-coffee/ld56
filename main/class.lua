@@ -387,7 +387,11 @@ end
 
 function class.world:render(camera, canvas)
   local cam = camera.position
-  table.sort(self._instances, function(a, b)
+  local instances = {}
+  for k, v in pairs(self._instances) do
+    instances[k] = v
+  end
+  table.sort(instances, function(a, b)
     local posA, posB = a.position, b.position
     local aXDiff = math.max(posA.x, cam.x) - math.min(posA.x, cam.x)
     local aYDiff = math.max(posA.y, cam.y) - math.min(posA.y, cam.y)
@@ -397,8 +401,8 @@ function class.world:render(camera, canvas)
     local bZDiff = math.max(posB.z, cam.z) - math.min(posB.z, cam.z)
     return aXDiff + aYDiff + aZDiff > bXDiff + bYDiff + bZDiff
   end)
-  for i=1,#self._instances do
-    renderInstance(camera, canvas, self._instances[i])
+  for i=1,#instances do
+    renderInstance(camera, canvas, instances[i])
   end
 end
 
