@@ -2,7 +2,7 @@ local view = require("utils.view")
 local class = require("class")
 local blocks = require("blocks")
 local world = nil
-local worldCamera = nil
+local camera = nil
 local worldCanvas = nil
 
 
@@ -10,12 +10,68 @@ local worldCanvas = nil
 -- | Helpers | -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 -- ╰ ------- ╯ -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 
+local function moveForward()
+  if camera.direction == class.NORTH then
+    camera.position.z = camera.position.z + 1
+  elseif camera.direction == class.SOUTH then
+    camera.position.z = camera.position.z - 1
+  elseif camera.direction == class.EAST then
+    camera.position.x = camera.position.x + 1
+  elseif camera.direction == class.WEST then
+    camera.position.x = camera.position.x - 1
+  end
+end
+
+local function moveBack()
+  if camera.direction == class.NORTH then
+    camera.position.z = camera.position.z - 1
+  elseif camera.direction == class.SOUTH then
+    camera.position.z = camera.position.z + 1
+  elseif camera.direction == class.EAST then
+    camera.position.x = camera.position.x - 1
+  elseif camera.direction == class.WEST then
+    camera.position.x = camera.position.x + 1
+  end
+end
+
+local function strafeRight()
+  if camera.direction == class.NORTH then
+    camera.position.x = camera.position.x + 1
+  elseif camera.direction == class.SOUTH then
+    camera.position.x = camera.position.x - 1
+  elseif camera.direction == class.EAST then
+    camera.position.z = camera.position.z + 1
+  elseif camera.direction == class.WEST then
+    camera.position.z = camera.position.z - 1
+  end
+end
+
+local function strafeLeft()
+  if camera.direction == class.NORTH then
+    camera.position.x = camera.position.x - 1
+  elseif camera.direction == class.SOUTH then
+    camera.position.x = camera.position.x + 1
+  elseif camera.direction == class.EAST then
+    camera.position.z = camera.position.z - 1
+  elseif camera.direction == class.WEST then
+    camera.position.z = camera.position.z + 1
+  end
+end
+
+local function turnRight()
+  camera.direction = camera.direction % 4 + 1
+end
+
+local function turnLeft()
+  camera.direction = (camera.direction - 2) % 4 + 1
+end
+
 local function worldTest()
-  worldCamera = class.camera.new()
+  camera = class.camera.new()
   worldCanvas = love.graphics.newCanvas(800, 800)
   world = class.world.new()
-  worldCamera.position = {x=10, y=10, z=10}
-  worldCamera.direction = class.NORTH
+  camera.position = {x=10, y=10, z=10}
+  camera.direction = class.NORTH
   world:setBlock(15, 12, 20, blocks.testBlockRed())
   world:setBlock(14, 12, 20, blocks.testBlockBlue())
   world:setBlock(13, 12, 20, blocks.testBlockRed())
@@ -52,7 +108,23 @@ function love.draw()
   love.graphics.setCanvas(worldCanvas)
   love.graphics.clear()
   love.graphics.setCanvas()
-  world:render(worldCamera, worldCanvas)
+  world:render(camera, worldCanvas)
   view.origin()
   love.graphics.draw(worldCanvas)
+end
+
+function love.keypressed(key)
+   if key == "w" then
+     moveForward()
+   elseif key == "s" then
+     moveBack()
+   elseif key == "d" then
+     strafeRight()
+   elseif key == "a" then
+     strafeLeft()
+   elseif key == "e" then
+     turnRight()
+   elseif key == "q" then
+     turnLeft()
+   end
 end

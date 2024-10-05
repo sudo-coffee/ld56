@@ -5,7 +5,7 @@ local class = {}
 -- | Enums | -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 -- ╰ ----- ╯ -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 
--- Side / Rotation / Direction.
+-- Side / Rotation / Direction. Should store these as vectors.
 class.NORTH = 1
 class.EAST = 2
 class.SOUTH = 3
@@ -219,11 +219,6 @@ end
 function class.block:getRotation()
   return self._rotation
 end
-
--- -- In number of 90 degree turns clockwise.
--- function class.block:rotate(turns)
---   self._rotation = (self._rotation + turns - 1) % 4 + 1
--- end
 
 -- ╭ -------- ╮ -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 -- | Instance | -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
