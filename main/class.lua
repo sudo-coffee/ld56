@@ -20,13 +20,16 @@ class.DOWN = 6
 
 local function blockInView(camera, position, block)
   local inView = true
-  if camera.direction == class.NORTH and position.z < camera.position.z then
+  local pos, cam = position, camera.position
+  if pos.x == cam.x and pos.y == cam.y and pos.z == cam.z then
     inView = false
-  elseif camera.direction == class.SOUTH and position.z > camera.position.z then
+  elseif camera.direction == class.NORTH and pos.z < cam.z then
     inView = false
-  elseif camera.direction == class.EAST and position.x < camera.position.x then
+  elseif camera.direction == class.SOUTH and pos.z > cam.z then
     inView = false
-  elseif camera.direction == class.WEST and position.x > camera.position.x then
+  elseif camera.direction == class.EAST and pos.x < cam.x then
+    inView = false
+  elseif camera.direction == class.WEST and pos.x > cam.x then
     inView = false
   else
     -- need more logic here
@@ -126,6 +129,7 @@ end
 local function renderBlock(camera, canvas, position, block)
   if not blockInView(camera, position, block) then return end
   local height = canvas:getPixelHeight()
+  love.graphics.push("all")
   love.graphics.setCanvas(canvas)
   love.graphics.origin()
   love.graphics.translate(
@@ -138,7 +142,7 @@ local function renderBlock(camera, canvas, position, block)
   end
   local sprite = block:getSprite(block:fromRotated(camera.direction))
   if sprite then renderSprite(camera, height, sprite, position) end
-  love.graphics.setCanvas()
+  love.graphics.pop()
 end
 
 
@@ -280,18 +284,78 @@ end
 -- (add instance object here to represent block position and rotation)
 
 
--- ╭ ----- ╮ -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
--- | World | -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
--- ╰ ----- ╯ -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
+-- ╭ --------- ╮ -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
+-- | Character | -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
+-- ╰ --------- ╯ -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 
 class.character = {}
 
-function class.character.new()
+function class.character.new(block, slotX, slotY, resX, resY, pad)
   local instance = {}
+  instance._block = block -- needs to be a unique object
+  instance._camera = class.camera.new()
+  instance._canvas = love.graphics.newCanvas(resX - pad * 2, resY - pad * 2)
+  instance._position = nil
+  instance._direction = instance._camera.direction
+  instance._slot = {slotX, slotY} -- integer
+  local vertices = {
+    {resX * (slotX - 1) + pad, resY * (slotY - 1) + pad, 0, 0},
+    {resX * (slotX - 1) + pad, resY * slotY - pad, 0, 1},
+    {resX * slotX - pad, resY * slotY - pad, 1, 1},
+    {resX * slotX - pad, resY * (slotY - 1) + pad, 1, 0},
+  }
+  instance._mesh = love.graphics.newMesh(vertices)
+  instance._mesh:setTexture(instance._canvas)
   setmetatable(instance, {__index = class.character})
   return instance
 end
 
+function class.character:render(world)
+  love.graphics.push("all")
+  love.graphics.setCanvas(self._canvas)
+  love.graphics.clear(0.3, 0.3, 0.4, 1.0)
+  love.graphics.pop()
+  world:render(self._camera, self._canvas)
+end
+
+function class.character:getMesh()
+  return self._mesh
+end
+
+function class.character:setDirection(direction)
+  self._direction = direction
+  self._camera.direction = direction
+  self._block.direction = direction
+end
+
+function class.character:getDirection()
+  return self._direction
+end
+
+function class.character:rotate(turns)
+  self._direction = (self._direction + turns - 1) % 4 + 1
+  self._camera.direction = self._direction
+  self._block.direction = self._direction
+end
+
+function class.character:setPosition(world, position)
+  if self._position then
+    world:clearBlock(self._position.x, self._position.y, self._position.z)
+  end
+  world:setBlock(position.x, position.y, position.z, self._block)
+  self._position = position
+  self._camera.position = position
+end
+
+function class.character:getPosition()
+  return {x=self._position.x, y=self._position.y, z=self._position.z}
+end
+
+function class.character:destroy(world)
+  if self._position then
+    world:clearBlock(self._position.x, self._position.y, self._position.z)
+  end
+end
 
 
 -- ╭ ----- ╮ -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
