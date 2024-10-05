@@ -18,9 +18,109 @@ class.DOWN = 6
 -- | Helpers | -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 -- ╰ ------- ╯ -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 
+local function blockInView(camera, position, block)
+  local inView = true
+  if camera.direciton == class.NORTH and position.z < camera.position.z then
+    inView = false
+  elseif camera.direciton == class.SOUTH and position.z > camera.position.z then
+    inView = false
+  elseif camera.direciton == class.EAST and position.x < camera.position.x then
+    inView = false
+  elseif camera.direciton == class.WEST and position.x > camera.position.x then
+    inView = false
+  else
+    -- need more logic here
+  end
+  return inView
+end
+
+-- in screen coordinates
+local function getBlockOffset(camera, position)
+  local blockOffset = {}
+  blockOffset.y = position.y - camera.position.y
+  if camera.direction == class.NORTH then
+    blockOffset.x = position.x - camera.position.x
+    blockOffset.z = position.z - camera.position.z
+  elseif camera.direction == class.SOUTH then
+    blockOffset.x = camera.position.x - position.x
+    blockOffset.z = camera.position.z - position.z
+  elseif camera.direction == class.EAST then
+    blockOffset.x = position.z - camera.position.z
+    blockOffset.z = position.x - camera.position.x
+  elseif camera.direction == class.WEST then
+    blockOffset.x = camera.position.z - position.z
+    blockOffset.z = camera.position.x - position.x
+  end
+  return blockOffset
+end
+
+local function renderSurface(camera, width, height, surface, position)
+  local offset = getBlockOffset(camera, position)
+  local scaleA = height * camera.frame * camera.perspective ^ offset.z
+  local scaleB = scaleA * camera.perspective
+  local vertices = {}
+  -- need some logic to reverse side wall textures
+  if (camera.direction == class.NORTH and surface.side == class.NORTH)
+  or (camera.direction == class.SOUTH and surface.side == class.SOUTH)
+  or (camera.direction == class.EAST and surface.side == class.EAST)
+  or (camera.direction == class.WEST and surface.side == class.WEST) then
+    vertices[1] = {(offset.x - 0.5) * scaleB, (offset.y - 0.5) * scaleB, 0, 0}
+    vertices[2] = {(offset.x + 0.5) * scaleB, (offset.y - 0.5) * scaleB, 1, 0}
+    vertices[3] = {(offset.x + 0.5) * scaleB, (offset.y + 0.5) * scaleB, 1, 1}
+    vertices[4] = {(offset.x - 0.5) * scaleB, (offset.y + 0.5) * scaleB, 0, 1}
+  elseif (camera.direction == class.NORTH and surface.side == class.SOUTH)
+  or (camera.direction == class.SOUTH and surface.side == class.NORTH)
+  or (camera.direction == class.EAST and surface.side == class.WEST)
+  or (camera.direction == class.WEST and surface.side == class.EAST) then
+    vertices[1] = {(offset.x - 0.5) * scaleA, (offset.y - 0.5) * scaleA, 0, 0}
+    vertices[2] = {(offset.x + 0.5) * scaleA, (offset.y - 0.5) * scaleA, 1, 0}
+    vertices[3] = {(offset.x + 0.5) * scaleA, (offset.y + 0.5) * scaleA, 1, 1}
+    vertices[4] = {(offset.x - 0.5) * scaleA, (offset.y + 0.5) * scaleA, 0, 1}
+  elseif (camera.direction == class.NORTH and surface.side == class.EAST)
+  or (camera.direction == class.SOUTH and surface.side == class.WEST)
+  or (camera.direction == class.EAST and surface.side == class.SOUTH)
+  or (camera.direction == class.WEST and surface.side == class.NORTH) then
+    vertices[1] = {(offset.x + 0.5) * scaleB, (offset.y - 0.5) * scaleB, 0, 0}
+    vertices[2] = {(offset.x + 0.5) * scaleA, (offset.y - 0.5) * scaleA, 1, 0}
+    vertices[3] = {(offset.x + 0.5) * scaleA, (offset.y + 0.5) * scaleA, 1, 1}
+    vertices[4] = {(offset.x + 0.5) * scaleB, (offset.y + 0.5) * scaleB, 0, 1}
+  elseif (camera.direction == class.NORTH and surface.side == class.WEST)
+  or (camera.direction == class.SOUTH and surface.side == class.EAST)
+  or (camera.direction == class.EAST and surface.side == class.NORTH)
+  or (camera.direction == class.WEST and surface.side == class.SOUTH) then
+    vertices[1] = {(offset.x - 0.5) * scaleB, (offset.y - 0.5) * scaleB, 0, 0}
+    vertices[2] = {(offset.x - 0.5) * scaleA, (offset.y - 0.5) * scaleA, 1, 0}
+    vertices[3] = {(offset.x - 0.5) * scaleA, (offset.y + 0.5) * scaleA, 1, 1}
+    vertices[4] = {(offset.x - 0.5) * scaleB, (offset.y + 0.5) * scaleB, 0, 1}
+  elseif surface.side == class.DOWN then
+    vertices[1] = {(offset.x - 0.5) * scaleB, (offset.y + 0.5) * scaleB, 0, 0}
+    vertices[2] = {(offset.x - 0.5) * scaleA, (offset.y + 0.5) * scaleA, 1, 0}
+    vertices[3] = {(offset.x + 0.5) * scaleA, (offset.y + 0.5) * scaleA, 1, 1}
+    vertices[4] = {(offset.x + 0.5) * scaleB, (offset.y + 0.5) * scaleB, 0, 1}
+  elseif surface.side == class.UP then
+    vertices[1] = {(offset.x - 0.5) * scaleB, (offset.y - 0.5) * scaleB, 0, 0}
+    vertices[2] = {(offset.x - 0.5) * scaleA, (offset.y - 0.5) * scaleA, 1, 0}
+    vertices[3] = {(offset.x + 0.5) * scaleA, (offset.y - 0.5) * scaleA, 1, 1}
+    vertices[4] = {(offset.x + 0.5) * scaleB, (offset.y - 0.5) * scaleB, 0, 1}
+  end
+  local mesh = love.graphics.newMesh(vertices)
+  mesh:setTexture(surface.texture)
+  love.graphics.draw(mesh)
+end
+
 local function renderBlock(camera, canvas, position, block)
-  local distance
-  print(position.x, position.y, position.z, block)
+  if not blockInView(camera, position, block) then return end
+  local width, height = canvas:getPixelDimensions()
+  love.graphics.setCanvas(canvas)
+  love.graphics.origin()
+  love.graphics.translate(
+    canvas:getPixelHeight() / 2.0,
+    canvas:getPixelWidth() / 2.0
+  )
+  for _, surface in pairs(block:getSurfaces(camera.direction)) do
+    renderSurface(camera, width, height, surface, position)
+  end
+  love.graphics.setCanvas()
 end
 
 
@@ -43,12 +143,12 @@ end
 
 class.surface = {}
 
-function class.surface.new(texture, side, direction, offset)
+function class.surface.new(texture, direction, side)
   local instance = {}
   instance.texture = texture
-  instance.side = side
   instance.direction = direction
-  instance.offset = offset or 0.0
+  instance.side = side
+  -- instance.offset = offset or 0.0
   return instance
 end
 
@@ -64,8 +164,8 @@ function class.camera.new()
   instance.position = {x=0, y=0, z=0}
   instance.direction = class.NORTH
   instance.perspective = 0.8
-  instance.frame = 2.0
-  instance.fog = 2.0
+  instance.frame = .8
+  instance.fog = 1.0
   setmetatable(instance, {__index = class.camera})
   return instance
 end
@@ -99,12 +199,16 @@ function class.block:testWall(direction)
 end
 
 function class.block:addSurface(surface)
-  self._surfaces[surface.side] = self._surfaces[surface.side] or {}
-  self._surfaces[surface.side][surface.direction] = surface
+  self._surfaces[surface.direction] = self._surfaces[surface.direction] or {}
+  self._surfaces[surface.direction][surface.side] = surface
+end
+
+function class.block:getSurfaces(direction)
+  return self._surfaces[direction]
 end
 
 function class.block:getSurface(side, direction)
-  return self._surfaces[side] and self._surfaces[side][direction] or nil
+  return self._surfaces[direction] and self._surfaces[direction][side] or nil
 end
 
 -- Must be NORTH, EAST, SOUTH, or WEST.
@@ -121,14 +225,20 @@ end
 --   self._rotation = (self._rotation + turns - 1) % 4 + 1
 -- end
 
+-- ╭ -------- ╮ -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
+-- | Instance | -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
+-- ╰ -------- ╯ -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
+
+-- (add instance object here to represent block position and rotation)
+
 
 -- ╭ ----- ╮ -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 -- | World | -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 -- ╰ ----- ╯ -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 
--- +y is UP
+-- +y is DOWN
 -- +x is EAST
--- +z is SOUTH
+-- +z is NORTH
 
 class.world = {}
 

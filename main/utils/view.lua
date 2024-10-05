@@ -74,6 +74,7 @@ end
 -- Scale and center the coordinate system to adjust for different window sizes.
 function view.origin()
   updateWindow()
+  love.graphics.origin()
   if offsetX and offsetY then love.graphics.translate(offsetX, offsetY) end
   if scale then love.graphics.scale(scale) end
 end
