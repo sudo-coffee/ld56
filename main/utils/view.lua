@@ -38,14 +38,14 @@ end
 -- | Public | -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 -- ╰ ------ ╯ -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 
-function view.setViewSize(width, height)
+function view.setDimensions(width, height)
   viewWidth = width
   viewHeight = height
   windowWidth, windowHeight = love.graphics.getDimensions()
   updateOffsets()
 end
 
-function view.getViewSize()
+function view.getDimensions()
   return viewWidth, viewHeight
 end
 
