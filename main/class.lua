@@ -20,13 +20,13 @@ class.DOWN = 6
 
 local function blockInView(camera, position, block)
   local inView = true
-  if camera.direciton == class.NORTH and position.z < camera.position.z then
+  if camera.direction == class.NORTH and position.z < camera.position.z then
     inView = false
-  elseif camera.direciton == class.SOUTH and position.z > camera.position.z then
+  elseif camera.direction == class.SOUTH and position.z > camera.position.z then
     inView = false
-  elseif camera.direciton == class.EAST and position.x < camera.position.x then
+  elseif camera.direction == class.EAST and position.x < camera.position.x then
     inView = false
-  elseif camera.direciton == class.WEST and position.x > camera.position.x then
+  elseif camera.direction == class.WEST and position.x > camera.position.x then
     inView = false
   else
     -- need more logic here
@@ -45,10 +45,10 @@ local function getBlockOffset(camera, position)
     blockOffset.x = camera.position.x - position.x
     blockOffset.z = camera.position.z - position.z
   elseif camera.direction == class.EAST then
-    blockOffset.x = position.z - camera.position.z
+    blockOffset.x = camera.position.z - position.z
     blockOffset.z = position.x - camera.position.x
   elseif camera.direction == class.WEST then
-    blockOffset.x = camera.position.z - position.z
+    blockOffset.x = position.z - camera.position.z
     blockOffset.z = camera.position.x - position.x
   end
   return blockOffset
@@ -56,7 +56,7 @@ end
 
 local function renderSurface(camera, width, height, surface, position)
   local offset = getBlockOffset(camera, position)
-  local scaleA = height * camera.frame * camera.perspective ^ offset.z
+  local scaleA = height * camera.perspective ^ offset.z / camera.frame
   local scaleB = scaleA * camera.perspective
   local vertices = {}
   -- need some logic to reverse side wall textures
@@ -163,8 +163,8 @@ function class.camera.new()
   local instance = {}
   instance.position = {x=0, y=0, z=0}
   instance.direction = class.NORTH
-  instance.perspective = 0.8
-  instance.frame = .8
+  instance.perspective = 0.6
+  instance.frame = 0.8
   instance.fog = 1.0
   setmetatable(instance, {__index = class.camera})
   return instance

@@ -15,11 +15,12 @@ local function moveForward()
     camera.position.z = camera.position.z + 1
   elseif camera.direction == class.SOUTH then
     camera.position.z = camera.position.z - 1
-  elseif camera.direction == class.EAST then
-    camera.position.x = camera.position.x + 1
   elseif camera.direction == class.WEST then
     camera.position.x = camera.position.x - 1
+  elseif camera.direction == class.EAST then
+    camera.position.x = camera.position.x + 1
   end
+  print(camera.position.x, camera.position.y, camera.position.z)
 end
 
 local function moveBack()
@@ -27,11 +28,12 @@ local function moveBack()
     camera.position.z = camera.position.z - 1
   elseif camera.direction == class.SOUTH then
     camera.position.z = camera.position.z + 1
-  elseif camera.direction == class.EAST then
-    camera.position.x = camera.position.x - 1
   elseif camera.direction == class.WEST then
     camera.position.x = camera.position.x + 1
+  elseif camera.direction == class.EAST then
+    camera.position.x = camera.position.x - 1
   end
+  print(camera.position.x, camera.position.y, camera.position.z)
 end
 
 local function strafeRight()
@@ -39,11 +41,12 @@ local function strafeRight()
     camera.position.x = camera.position.x + 1
   elseif camera.direction == class.SOUTH then
     camera.position.x = camera.position.x - 1
-  elseif camera.direction == class.EAST then
-    camera.position.z = camera.position.z + 1
   elseif camera.direction == class.WEST then
+    camera.position.z = camera.position.z + 1
+  elseif camera.direction == class.EAST then
     camera.position.z = camera.position.z - 1
   end
+  print(camera.position.x, camera.position.y, camera.position.z)
 end
 
 local function strafeLeft()
@@ -51,11 +54,12 @@ local function strafeLeft()
     camera.position.x = camera.position.x - 1
   elseif camera.direction == class.SOUTH then
     camera.position.x = camera.position.x + 1
-  elseif camera.direction == class.EAST then
-    camera.position.z = camera.position.z - 1
   elseif camera.direction == class.WEST then
+    camera.position.z = camera.position.z - 1
+  elseif camera.direction == class.EAST then
     camera.position.z = camera.position.z + 1
   end
+  print(camera.position.x, camera.position.y, camera.position.z)
 end
 
 local function turnRight()
@@ -72,14 +76,16 @@ local function worldTest()
   world = class.world.new()
   camera.position = {x=10, y=10, z=10}
   camera.direction = class.NORTH
-  world:setBlock(15, 12, 20, blocks.testBlockRed())
-  world:setBlock(14, 12, 20, blocks.testBlockBlue())
-  world:setBlock(13, 12, 20, blocks.testBlockRed())
-  world:setBlock(12, 12, 20, blocks.testBlockBlue())
-  world:setBlock(8, 8, 24, blocks.testBlockRed())
-  world:setBlock(7, 7, 23, blocks.testBlockBlue())
-  world:setBlock(6, 6, 22, blocks.testBlockRed())
-  world:setBlock(5, 5, 21, blocks.testBlockBlue())
+  world:setBlock(11, 10, 10, blocks.testBlockRed())
+  world:setBlock(9, 10, 11, blocks.testBlockRed())
+  world:setBlock(9, 10, 10, blocks.testBlockBlue())
+  world:setBlock(11, 10, 11, blocks.testBlockBlue())
+  -- world:setBlock(13, 10, 20, blocks.testBlockRed())
+  -- world:setBlock(12, 10, 20, blocks.testBlockBlue())
+  -- world:setBlock(8, 8, 24, blocks.testBlockRed())
+  -- world:setBlock(7, 7, 23, blocks.testBlockBlue())
+  -- world:setBlock(6, 6, 22, blocks.testBlockRed())
+  -- world:setBlock(5, 5, 21, blocks.testBlockBlue())
 
   -- world:setBlock(10, 10, 0, testBlockRed())
   -- world:setBlock(10, 10, 1, testBlockRed())
@@ -114,17 +120,17 @@ function love.draw()
 end
 
 function love.keypressed(key)
-   if key == "w" then
+   if key == "w" or key == "up" then
      moveForward()
-   elseif key == "s" then
+   elseif key == "s" or key == "down" then
      moveBack()
-   elseif key == "d" then
+   elseif key == "d" or key == "right" then
      strafeRight()
-   elseif key == "a" then
+   elseif key == "a" or key == "left" then
      strafeLeft()
-   elseif key == "e" then
+   elseif key == "e" or key == "x" or key == "pagedown" then
      turnRight()
-   elseif key == "q" then
+   elseif key == "q" or key == "z" or key == "pageup" then
      turnLeft()
    end
 end
