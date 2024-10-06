@@ -420,11 +420,11 @@ function class.layout:removeInstance(instance)
     end
   end
   if #self._instances[pos.x][pos.y][pos.z] == 0 then
-    table.remove(self._instances[pos.x][pos.y], pos.z)
-    if #self._instances[pos.x][pos.y] == 0 then
-      table.remove(self._instances[pos.x], pos.y)
-      if #self._instances[pos.x] == 0 then
-        table.remove(self._instances, pos.x)
+    self._instances[pos.x][pos.y][pos.z] = nil
+    if not next(self._instances[pos.x][pos.y]) then
+      self._instances[pos.x][pos.y] = nil
+      if not next(self._instances[pos.x]) then
+        self._instances[pos.x] = nil
       end
     end
   end
