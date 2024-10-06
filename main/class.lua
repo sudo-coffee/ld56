@@ -18,21 +18,36 @@ class.DOWN = 6
 -- | Helpers | -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 -- ╰ ------- ╯ -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 
-local function instanceInView(camera, instance)
+local function rotate(direction, turns)
+  return (direction + turns - 1) % 4 + 1
+end
+
+local function instanceInView(camera, instance, offset, height)
   local inView = true
-  local cam, pos = camera.position, instance:getPosition()
-  if pos.x == cam.x and pos.y == cam.y and pos.z == cam.z then
+  if offset.x == 0 and offset.y == 0 and offset.z == 0 then
     inView = false
-  elseif camera.direction == class.NORTH and pos.z < cam.z then
+  elseif offset.z < 0 then
     inView = false
-  elseif camera.direction == class.SOUTH and pos.z > cam.z then
-    inView = false
-  elseif camera.direction == class.EAST and pos.x < cam.x then
-    inView = false
-  elseif camera.direction == class.WEST and pos.x > cam.x then
+  elseif math.abs(offset.x) ^ 3
+  + math.abs(offset.y) ^ 3
+  + math.abs(offset.z) ^ 3 > 1728 then
     inView = false
   else
-    -- need more logic here
+    local scaleA = height * 2.0 * camera.perspective ^ offset.z / camera.frame
+    local scaleB = scaleA * camera.perspective
+    if (offset.x + 0.5) * scaleA < -height
+    and (offset.x + 0.5) * scaleB < -height then
+      inView = false
+    elseif (offset.x - 0.5) * scaleA > height
+    and (offset.x - 0.5) * scaleB > height then
+      inView = false
+    elseif (offset.y + 0.5) * scaleA < -height
+    and (offset.y + 0.5) * scaleB < -height then
+      inView = false
+    elseif (offset.y - 0.5) * scaleA > height
+    and (offset.y - 0.5) * scaleB > height then
+      inView = false
+    end
   end
   return inView
 end
@@ -58,63 +73,59 @@ local function getInstanceOffset(camera, instance)
   return instanceOffset
 end
 
-local function renderSurface(camera, height, surface, instance)
-  local offset = getInstanceOffset(camera, instance)
-  local scaleA = height * camera.perspective ^ offset.z / camera.frame
-  local scaleB = scaleA * camera.perspective
-  local vertices = {}
+local function renderSurface(camera, height, surface, instance, offset)
+  local dir = camera.direction
   local rotated = instance:toRotated(surface.side)
-  -- need some logic to reverse side wall textures
-  if (camera.direction == class.NORTH and rotated == class.NORTH)
-  or (camera.direction == class.SOUTH and rotated == class.SOUTH)
-  or (camera.direction == class.EAST and rotated == class.EAST)
-  or (camera.direction == class.WEST and rotated == class.WEST) then
-    vertices[1] = {(offset.x - 0.5) * scaleB, (offset.y - 0.5) * scaleB, 0, 0}
-    vertices[2] = {(offset.x + 0.5) * scaleB, (offset.y - 0.5) * scaleB, 1, 0}
-    vertices[3] = {(offset.x + 0.5) * scaleB, (offset.y + 0.5) * scaleB, 1, 1}
-    vertices[4] = {(offset.x - 0.5) * scaleB, (offset.y + 0.5) * scaleB, 0, 1}
-  elseif (camera.direction == class.NORTH and rotated == class.SOUTH)
-  or (camera.direction == class.SOUTH and rotated == class.NORTH)
-  or (camera.direction == class.EAST and rotated == class.WEST)
-  or (camera.direction == class.WEST and rotated == class.EAST) then
+  local vertices = {}
+  if dir == rotated then
+    return
+  elseif rotated == class.UP and offset.y <= 0 then
+    return
+  elseif rotated == class.DOWN and offset.y >= 0 then
+    return
+  elseif rotate(dir, 2) == rotated then
+    local scaleA = height * camera.perspective ^ offset.z / camera.frame
     vertices[1] = {(offset.x - 0.5) * scaleA, (offset.y - 0.5) * scaleA, 0, 0}
     vertices[2] = {(offset.x + 0.5) * scaleA, (offset.y - 0.5) * scaleA, 1, 0}
     vertices[3] = {(offset.x + 0.5) * scaleA, (offset.y + 0.5) * scaleA, 1, 1}
     vertices[4] = {(offset.x - 0.5) * scaleA, (offset.y + 0.5) * scaleA, 0, 1}
-  elseif (camera.direction == class.NORTH and rotated == class.EAST)
-  or (camera.direction == class.SOUTH and rotated == class.WEST)
-  or (camera.direction == class.EAST and rotated == class.SOUTH)
-  or (camera.direction == class.WEST and rotated == class.NORTH) then
+  elseif rotate(dir, 1) == rotated and offset.x < 0 then
+    local scaleA = height * camera.perspective ^ offset.z / camera.frame
+    local scaleB = scaleA * camera.perspective
     vertices[1] = {(offset.x + 0.5) * scaleB, (offset.y - 0.5) * scaleB, 0, 0}
     vertices[2] = {(offset.x + 0.5) * scaleA, (offset.y - 0.5) * scaleA, 1, 0}
     vertices[3] = {(offset.x + 0.5) * scaleA, (offset.y + 0.5) * scaleA, 1, 1}
     vertices[4] = {(offset.x + 0.5) * scaleB, (offset.y + 0.5) * scaleB, 0, 1}
-  elseif (camera.direction == class.NORTH and rotated == class.WEST)
-  or (camera.direction == class.SOUTH and rotated == class.EAST)
-  or (camera.direction == class.EAST and rotated == class.NORTH)
-  or (camera.direction == class.WEST and rotated == class.SOUTH) then
+  elseif rotate(dir, 3) == rotated and offset.x > 0 then
+    local scaleA = height * camera.perspective ^ offset.z / camera.frame
+    local scaleB = scaleA * camera.perspective
     vertices[1] = {(offset.x - 0.5) * scaleB, (offset.y - 0.5) * scaleB, 0, 0}
     vertices[2] = {(offset.x - 0.5) * scaleA, (offset.y - 0.5) * scaleA, 1, 0}
     vertices[3] = {(offset.x - 0.5) * scaleA, (offset.y + 0.5) * scaleA, 1, 1}
     vertices[4] = {(offset.x - 0.5) * scaleB, (offset.y + 0.5) * scaleB, 0, 1}
   elseif surface.side == class.DOWN then
+    local scaleA = height * camera.perspective ^ offset.z / camera.frame
+    local scaleB = scaleA * camera.perspective
     vertices[1] = {(offset.x - 0.5) * scaleB, (offset.y + 0.5) * scaleB, 0, 0}
     vertices[2] = {(offset.x - 0.5) * scaleA, (offset.y + 0.5) * scaleA, 1, 0}
     vertices[3] = {(offset.x + 0.5) * scaleA, (offset.y + 0.5) * scaleA, 1, 1}
     vertices[4] = {(offset.x + 0.5) * scaleB, (offset.y + 0.5) * scaleB, 0, 1}
   elseif surface.side == class.UP then
+    local scaleA = height * camera.perspective ^ offset.z / camera.frame
+    local scaleB = scaleA * camera.perspective
     vertices[1] = {(offset.x - 0.5) * scaleB, (offset.y - 0.5) * scaleB, 0, 0}
     vertices[2] = {(offset.x - 0.5) * scaleA, (offset.y - 0.5) * scaleA, 1, 0}
     vertices[3] = {(offset.x + 0.5) * scaleA, (offset.y - 0.5) * scaleA, 1, 1}
     vertices[4] = {(offset.x + 0.5) * scaleB, (offset.y - 0.5) * scaleB, 0, 1}
+  else
+    return
   end
   local mesh = love.graphics.newMesh(vertices)
   mesh:setTexture(surface.texture)
   love.graphics.draw(mesh)
 end
 
-local function renderSprite(camera, height, sprite, instance)
-  local offset = getInstanceOffset(camera, instance)
+local function renderSprite(camera, height, sprite, instance, offset)
   offset.z = offset.z + sprite.offset
   local scale = height * camera.perspective ^ offset.z / camera.frame
   local vertices = {}
@@ -128,8 +139,11 @@ local function renderSprite(camera, height, sprite, instance)
 end
 
 local function renderInstance(camera, canvas, instance)
-  if not instanceInView(camera, instance) then return end
+  local offset = getInstanceOffset(camera, instance)
   local height = canvas:getPixelHeight()
+  if not instanceInView(camera, instance, offset, height) then
+    return
+  end
   love.graphics.push("all")
   love.graphics.setCanvas(canvas)
   love.graphics.origin()
@@ -139,10 +153,10 @@ local function renderInstance(camera, canvas, instance)
   )
   local rotated = instance:fromRotated(camera.direction)
   for _, surface in pairs(instance:getBlock():getSurfaces(rotated)) do
-    renderSurface(camera, height, surface, instance)
+    renderSurface(camera, height, surface, instance, offset)
   end
   local sprite = instance:getBlock():getSprite(rotated)
-  if sprite then renderSprite(camera, height, sprite, instance) end
+  if sprite then renderSprite(camera, height, sprite, instance, offset) end
   love.graphics.pop()
 end
 
@@ -286,6 +300,7 @@ function class.instance.new(block, position, direction)
 end
 
 function class.instance:setPosition(position)
+  if not self._layout then return end
   self._layout:removeInstance(self)
   self._position.x = position.x
   self._position.y = position.y
@@ -314,6 +329,11 @@ function class.instance:setLayout(layout)
   layout:addInstance(self)
 end
 
+function class.instance:clearLayout()
+  self._layout:removeInstance(self)
+  self._layout = nil
+end
+
 function class.instance:toRotated(direction)
   local newDirection = direction
   if newDirection <= 4 then
@@ -340,12 +360,15 @@ class.character = {}
 function class.character.new(world, block, slotX, slotY, resX, resY, pad)
   local character = {}
   character._world = world
+  character._destroyed = false
   character._instance = class.instance.new(block)
   character._camera = class.camera.new()
   character._canvas = love.graphics.newCanvas(resX - pad * 2, resY - pad * 2)
   character._position = {x=nil, y=nil, z=nil}
   character._direction = character._camera.direction
   character._slot = {slotX, slotY} -- integer
+  character._won = false
+  character._nextPos = nil
   local vertices = {
     {resX * (slotX - 1) + pad, resY * (slotY - 1) + pad, 0, 0},
     {resX * (slotX - 1) + pad, resY * slotY - pad, 0, 1},
@@ -355,16 +378,36 @@ function class.character.new(world, block, slotX, slotY, resX, resY, pad)
   character._mesh = love.graphics.newMesh(vertices)
   character._mesh:setTexture(character._canvas)
   character._world:addInstance(character._instance)
+  local unit = character._canvas:getHeight() / 10
+  love.graphics.push("all")
+  love.graphics.setCanvas(character._canvas)
+  love.graphics.clear(0.0, 0.0, 0.0, 1.0)
+  love.graphics.setColor(0.3, 0.3, 0.3, 1.0)
+  love.graphics.setLineWidth(unit)
+  love.graphics.line(
+    unit * 2, unit * 4,
+    unit * 2, unit * 3,
+    unit * 3, unit * 2,
+    unit * 5, unit * 2,
+    unit * 6, unit * 3,
+    unit * 6, unit * 4,
+    unit * 5, unit * 5,
+    unit * 4, unit * 5,
+    unit * 4, unit * 6
+  )
+  love.graphics.line(unit * 4, unit * 7, unit * 4, unit * 8)
+  love.graphics.pop()
   setmetatable(character, {__index = class.character})
   return character
 end
 
-function class.character:render(world)
+function class.character:render()
+  if self._destroyed then return end
   love.graphics.push("all")
   love.graphics.setCanvas(self._canvas)
   love.graphics.clear(0.3, 0.3, 0.4, 1.0)
   love.graphics.pop()
-  world:render(self._camera, self._canvas)
+  self._world:render(self._camera, self._canvas)
 end
 
 function class.character:getMesh()
@@ -372,6 +415,7 @@ function class.character:getMesh()
 end
 
 function class.character:setDirection(direction)
+  if self._destroyed then return end
   self._direction = direction
   self._camera.direction = direction
   self._instance:setDirection(direction)
@@ -382,22 +426,65 @@ function class.character:getDirection()
 end
 
 function class.character:rotate(turns)
-  local direction = (self:getDirection() + turns - 1) % 4 + 1
+  if self._destroyed then return end
+  local direction = rotate(self:getDirection(), turns)
   self:setDirection(direction)
 end
 
 function class.character:setPosition(position)
-  self._position = {x=position.x, y=position.y, z=position.z}
-  self._camera.position = self._position
-  self._instance:setPosition(self._position)
+  if self._destroyed then return end
+  self._nextPos = {x=position.x, y=position.y, z=position.z}
+end
+
+function class.character:move()
+  if self._nextPos then
+    self._position = self._nextPos
+    self._camera.position = self._position
+    self._instance:setPosition(self._position)
+    self._nextPos = nil
+  end
 end
 
 function class.character:getPosition()
   return {x=self._position.x, y=self._position.y, z=self._position.z}
 end
 
+function class.character:hasWon()
+  return self._won
+end
+
+function class.character:isDestroyed()
+  return self._destroyed
+end
+
 function class.character:destroy()
-  -- self._world:removeInstance(self._instance)
+  if self._destroyed then return end
+  self._world:removeInstance(self._instance)
+  self._destroyed = true
+  local unit = self._canvas:getHeight() / 10
+  love.graphics.push("all")
+  love.graphics.setCanvas(self._canvas)
+  love.graphics.clear(0.0, 0.0, 0.0, 1.0)
+  love.graphics.setColor(0.3, 0.3, 0.3, 1.0)
+  love.graphics.setLineWidth(unit)
+  love.graphics.line(unit * 2, unit * 2, unit * 8, unit * 8)
+  love.graphics.line(unit * 2, unit * 8, unit * 8, unit * 2)
+  love.graphics.pop()
+end
+
+function class.character:win()
+  if self._destroyed then return end
+  self._world:removeInstance(self._instance)
+  self._destroyed = true
+  self._won = true
+  local unit = self._canvas:getHeight() / 10
+  love.graphics.push("all")
+  love.graphics.setCanvas(self._canvas)
+  love.graphics.clear(0.0, 0.0, 0.0, 1.0)
+  love.graphics.setColor(0.3, 0.3, 0.3, 1.0)
+  love.graphics.setLineWidth(unit)
+  love.graphics.line(unit * 8, unit * 2, unit * 4, unit * 8, unit * 2, unit * 6)
+  love.graphics.pop()
 end
 
 
@@ -505,7 +592,7 @@ function class.world:addBlock(block, position, direction)
 end
 
 function class.world:removeInstance(instance)
-  -- WIP
+  instance:clearLayout()
 end
 
 function class.world:isWall(position, side)
