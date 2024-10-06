@@ -219,8 +219,21 @@ function class.block.new()
   block._walls = {}
   block._surfaces = {}
   block._sprites = {}
+  block._tag = nil
   setmetatable(block, {__index = class.block})
   return block
+end
+
+function class.block:setTag(tag)
+  self._tag = tag
+end
+
+function class.block:getTag()
+  return self._tag
+end
+
+function class.block:isTag(tag)
+  return self._tag == tag
 end
 
 function class.block:addWall(wall)
@@ -505,6 +518,18 @@ function class.world:isWall(position, side)
     end
   end
   return isWall
+end
+
+function class.world:isTag(position, tag)
+  local instances = self._layout:getInstances(position)
+  local isTag = false
+  for i=1,#instances do
+    local block = instances[i]:getBlock()
+    if block:isTag(tag) then
+      isTag = true
+    end
+  end
+  return isTag
 end
 
 function class.world:render(camera, canvas)

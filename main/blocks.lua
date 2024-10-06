@@ -76,12 +76,7 @@ function blocks.character()
   block:addSprite(class.sprite.new(canvas, class.EAST, 0.4))
   block:addSprite(class.sprite.new(canvas, class.SOUTH, 0.4))
   block:addSprite(class.sprite.new(canvas, class.WEST, 0.4))
-  block:addWall(class.wall.new(class.SOUTH))
-  block:addWall(class.wall.new(class.NORTH))
-  block:addWall(class.wall.new(class.EAST))
-  block:addWall(class.wall.new(class.WEST))
-  block:addWall(class.wall.new(class.UP))
-  block:addWall(class.wall.new(class.DOWN))
+  block:setTag("character")
   return block
 end
 
