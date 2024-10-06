@@ -20,7 +20,7 @@ class.DOWN = 6
 
 local function instanceInView(camera, instance)
   local inView = true
-  local cam, pos = camera.position, instance.position
+  local cam, pos = camera.position, instance:getPosition()
   if pos.x == cam.x and pos.y == cam.y and pos.z == cam.z then
     inView = false
   elseif camera.direction == class.NORTH and pos.z < cam.z then
@@ -40,19 +40,20 @@ end
 -- in screen coordinates
 local function getInstanceOffset(camera, instance)
   local instanceOffset = {}
-  instanceOffset.y = instance.position.y - camera.position.y
+  local pos, cam = instance:getPosition(), camera.position
+  instanceOffset.y = pos.y - cam.y
   if camera.direction == class.NORTH then
-    instanceOffset.x = instance.position.x - camera.position.x
-    instanceOffset.z = instance.position.z - camera.position.z
+    instanceOffset.x = pos.x - cam.x
+    instanceOffset.z = pos.z - cam.z
   elseif camera.direction == class.SOUTH then
-    instanceOffset.x = camera.position.x - instance.position.x
-    instanceOffset.z = camera.position.z - instance.position.z
+    instanceOffset.x = cam.x - pos.x
+    instanceOffset.z = cam.z - pos.z
   elseif camera.direction == class.EAST then
-    instanceOffset.x = camera.position.z - instance.position.z
-    instanceOffset.z = instance.position.x - camera.position.x
+    instanceOffset.x = cam.z - pos.z
+    instanceOffset.z = pos.x - cam.x
   elseif camera.direction == class.WEST then
-    instanceOffset.x = instance.position.z - camera.position.z
-    instanceOffset.z = camera.position.x - instance.position.x
+    instanceOffset.x = pos.z - cam.z
+    instanceOffset.z = cam.x - pos.x
   end
   return instanceOffset
 end
@@ -137,10 +138,10 @@ local function renderInstance(camera, canvas, instance)
     canvas:getPixelWidth() / 2.0
   )
   local rotated = instance:fromRotated(camera.direction)
-  for _, surface in pairs(instance.block:getSurfaces(rotated)) do
+  for _, surface in pairs(instance:getBlock():getSurfaces(rotated)) do
     renderSurface(camera, height, surface, instance)
   end
-  local sprite = instance.block:getSprite(rotated)
+  local sprite = instance:getBlock():getSprite(rotated)
   if sprite then renderSprite(camera, height, sprite, instance) end
   love.graphics.pop()
 end
@@ -230,7 +231,7 @@ function class.block:getWall(side)
   return self._walls[wall.side] or nil
 end
 
-function class.block:testWall(side)
+function class.block:isWall(side)
   return self._walls[side] ~= nil
 end
 
@@ -260,17 +261,50 @@ class.instance = {}
 
 function class.instance.new(block, position, direction)
   local instance = {}
-  instance.block = block
-  instance.position = position or {x=0, y=0, z=0}
-  instance.direction = direction or class.NORTH
+  instance._block = block
+  instance._position = {}
+  instance._position.x = position and position.x or 0
+  instance._position.y = position and position.y or 0
+  instance._position.z = position and position.z or 0
+  instance._direction = direction or class.NORTH
+  instance._layout = nil
   setmetatable(instance, {__index = class.instance})
   return instance
+end
+
+function class.instance:setPosition(position)
+  self._layout:removeInstance(self)
+  self._position.x = position.x
+  self._position.y = position.y
+  self._position.z = position.z
+  self._layout:addInstance(self)
+end
+
+function class.instance:getPosition()
+  return {x=self._position.x, y=self._position.y, z=self._position.z}
+end
+
+function class.instance:getBlock()
+  return self._block
+end
+
+function class.instance:setDirection(direction)
+  self._direction = direction
+end
+
+function class.instance:getDirection()
+  return self._direction
+end
+
+function class.instance:setLayout(layout)
+  self._layout = layout
+  layout:addInstance(self)
 end
 
 function class.instance:toRotated(direction)
   local newDirection = direction
   if newDirection <= 4 then
-    newDirection = (direction + self.direction - 2) % 4 + 1
+    newDirection = (direction + self._direction - 2) % 4 + 1
   end
   return newDirection
 end
@@ -278,7 +312,7 @@ end
 function class.instance:fromRotated(direction)
   local newDirection = direction
   if newDirection <= 4 then
-    newDirection = (direction - self.direction) % 4 + 1
+    newDirection = (direction - self._direction) % 4 + 1
   end
   return newDirection
 end
@@ -327,7 +361,7 @@ end
 function class.character:setDirection(direction)
   self._direction = direction
   self._camera.direction = direction
-  self._instance.direction = direction
+  self._instance:setDirection(direction)
 end
 
 function class.character:getDirection()
@@ -335,15 +369,14 @@ function class.character:getDirection()
 end
 
 function class.character:rotate(turns)
-  self._direction = (self._direction + turns - 1) % 4 + 1
-  self._camera.direction = self._direction
-  self._instance.direction = self._direction
+  local direction = (self:getDirection() + turns - 1) % 4 + 1
+  self:setDirection(direction)
 end
 
 function class.character:setPosition(position)
-  self._position = position
-  self._camera.position = position
-  self._instance.position = position
+  self._position = {x=position.x, y=position.y, z=position.z}
+  self._camera.position = self._position
+  self._instance:setPosition(self._position)
 end
 
 function class.character:getPosition()
@@ -351,7 +384,83 @@ function class.character:getPosition()
 end
 
 function class.character:destroy()
-  self._world:removeInstance(self._instance)
+  -- self._world:removeInstance(self._instance)
+end
+
+
+-- ╭ ------ ╮ -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
+-- | Layout | -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
+-- ╰ ------ ╯ -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
+
+class.layout = {}
+
+function class.layout.new()
+  local layout = {}
+  layout._instances = {}
+  setmetatable(layout, {__index = class.layout})
+  return layout
+end
+
+function class.layout:positionEmpty(position)
+  local empty = false
+  if not self._instances[position.x]
+  or not self._instances[position.x][position.y]
+  or not self._instances[position.x][position.y][position.z] then
+    empty = true
+  end
+  return empty
+end
+
+function class.layout:removeInstance(instance)
+  local pos = instance:getPosition()
+  if self:positionEmpty(pos) then return end
+  for i=1,#self._instances[pos.x][pos.y][pos.z] do
+    if self._instances[pos.x][pos.y][pos.z][i] == instance then
+      table.remove(self._instances[pos.x][pos.y][pos.z], i)
+    end
+  end
+  if #self._instances[pos.x][pos.y][pos.z] == 0 then
+    table.remove(self._instances[pos.x][pos.y], pos.z)
+    if #self._instances[pos.x][pos.y] == 0 then
+      table.remove(self._instances[pos.x], pos.y)
+      if #self._instances[pos.x] == 0 then
+        table.remove(self._instances, pos.x)
+      end
+    end
+  end
+end
+
+function class.layout:addInstance(instance)
+  local pos = instance:getPosition()
+  local instances = self._instances
+  instances[pos.x] = instances[pos.x] or {}
+  instances[pos.x][pos.y] = instances[pos.x][pos.y] or {}
+  instances[pos.x][pos.y][pos.z] = instances[pos.x][pos.y][pos.z] or {}
+  table.insert(instances[pos.x][pos.y][pos.z], instance)
+end
+
+function class.layout:getInstances(position)
+  if self:positionEmpty(position) then return {} end
+  local instances = {}
+  local pos = position
+  for i=1,#self._instances[pos.x][pos.y][pos.z] do
+    table.insert(instances, self._instances[pos.x][pos.y][pos.z][i])
+  end
+  return instances
+end
+
+function class.layout:getAllInstances()
+  local instances = {}
+  for x,_ in pairs(self._instances) do
+    for y,_ in pairs(self._instances[x]) do
+      for z,_ in pairs(self._instances[x][y]) do
+        for i=1,#self._instances[x][y][z] do
+          table.insert(instances, self._instances[x][y][z][i])
+        end
+      end
+    end
+  end
+  return instances
 end
 
 
@@ -367,32 +476,42 @@ class.world = {}
 
 function class.world.new()
   local world = {}
-  world._instances = {}
+  world._layout = class.layout.new()
   setmetatable(world, {__index = class.world})
   return world
 end
 
-function class.world:addBlock(block, position, direction)
-  local instance = class.instance.new(block, position, direction)
-  table.insert(self._instances, instance)
+function class.world:addInstance(instance)
+  instance:setLayout(self._layout)
 end
 
-function class.world:addInstance(instance)
-  table.insert(self._instances, instance)
+function class.world:addBlock(block, position, direction)
+  local instance = class.instance.new(block, position, direction)
+  local pos = position
+  self:addInstance(instance)
 end
 
 function class.world:removeInstance(instance)
   -- WIP
 end
 
+function class.world:isWall(position, side)
+  local instances = self._layout:getInstances(position)
+  local isWall = false
+  for i=1,#instances do
+    local block = instances[i]:getBlock()
+    if block:isWall(instances[i]:toRotated(side)) then
+      isWall = true
+    end
+  end
+  return isWall
+end
+
 function class.world:render(camera, canvas)
   local cam = camera.position
-  local instances = {}
-  for k, v in pairs(self._instances) do
-    instances[k] = v
-  end
+  local instances = self._layout:getAllInstances()
   table.sort(instances, function(a, b)
-    local posA, posB = a.position, b.position
+    local posA, posB = a:getPosition(), b:getPosition()
     local aXDiff = math.max(posA.x, cam.x) - math.min(posA.x, cam.x)
     local aYDiff = math.max(posA.y, cam.y) - math.min(posA.y, cam.y)
     local aZDiff = math.max(posA.z, cam.z) - math.min(posA.z, cam.z)

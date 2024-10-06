@@ -15,14 +15,27 @@ local function moveForward()
     local direction = characters[i]:getDirection()
     if direction == class.NORTH then
       position.z = position.z + 1
+      if world:isWall(position, class.SOUTH) then
+        position.z = position.z - 1
+      end
     elseif direction == class.SOUTH then
       position.z = position.z - 1
+      if world:isWall(position, class.NORTH) then
+        position.z = position.z + 1
+      end
     elseif direction == class.WEST then
       position.x = position.x - 1
+      if world:isWall(position, class.EAST) then
+        position.x = position.x + 1
+      end
     elseif direction == class.EAST then
       position.x = position.x + 1
+      if world:isWall(position, class.WEST) then
+        position.x = position.x - 1
+      end
     end
     characters[i]:setPosition(position)
+    print(characters[i]._position.x, characters[i]._position.y, characters[i]._position.z)
   end
 end
 
@@ -40,6 +53,7 @@ local function moveBack()
       position.x = position.x - 1
     end
     characters[i]:setPosition(position)
+    print(characters[i]._position.x, characters[i]._position.y, characters[i]._position.z)
   end
 end
 
@@ -57,6 +71,7 @@ local function strafeRight()
       position.z = position.z - 1
     end
     characters[i]:setPosition(position)
+    print(characters[i]._position.x, characters[i]._position.y, characters[i]._position.z)
   end
 end
 
@@ -74,6 +89,7 @@ local function strafeLeft()
       position.z = position.z + 1
     end
     characters[i]:setPosition(position)
+    print(characters[i]._position.x, characters[i]._position.y, characters[i]._position.z)
   end
 end
 
@@ -119,8 +135,8 @@ function love.load()
   local testBlockRed = blocks.testBlockColor(0.8, 0.2, 0.3, 0.6)
   world:addBlock(testBlockRed, {x=11, y=10, z=10})
   view.setDimensions(800, 800)
-  for x=1,4 do
-    for y=1,4 do
+  for x=1,1 do
+    for y=1,1 do
       local block = blocks.character()
       local character = class.character.new(world, block, x, y, 200, 200, 10)
       character:setPosition({x=x*2, y=10, z=y*2})
@@ -139,17 +155,18 @@ function love.draw()
 end
 
 function love.keypressed(key)
-   if key == "w" or key == "up" then
-     moveForward()
-   elseif key == "s" or key == "down" then
-     moveBack()
-   elseif key == "d" or key == "right" then
-     strafeRight()
-   elseif key == "a" or key == "left" then
-     strafeLeft()
-   elseif key == "e" or key == "x" or key == "pagedown" then
-     turnRight()
-   elseif key == "q" or key == "z" or key == "pageup" then
-     turnLeft()
-   end
+  print()
+  if key == "w" or key == "up" then
+    moveForward()
+  elseif key == "s" or key == "down" then
+    moveBack()
+  elseif key == "d" or key == "right" then
+    strafeRight()
+  elseif key == "a" or key == "left" then
+    strafeLeft()
+  elseif key == "e" or key == "x" or key == "pagedown" then
+    turnRight()
+  elseif key == "q" or key == "z" or key == "pageup" then
+    turnLeft()
+  end
 end
