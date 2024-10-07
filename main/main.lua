@@ -219,6 +219,14 @@ function love.draw()
 end
 
 function love.keypressed(key)
+  if key == "f11" then
+    love.window.setFullscreen(not love.window.getFullscreen())
+    return
+  end
+  if key == "escape" then
+    love.window.setFullscreen(false)
+    return
+  end
   if not music then
     music = love.audio.newSource("assets/ld56_3.mp3", "static")
     music:setLooping(true)
