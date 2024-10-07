@@ -207,6 +207,7 @@ function love.load()
 end
 
 function love.draw()
+  love.graphics.push("all")
   view.origin()
   for i=1,#characters do
     if alive > 0 or characters[i]:hasWon() then
@@ -214,6 +215,7 @@ function love.draw()
       love.graphics.draw(mesh)
     end
   end
+  love.graphics.pop()
 end
 
 function love.keypressed(key)
